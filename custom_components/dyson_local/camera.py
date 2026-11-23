@@ -40,6 +40,8 @@ async def async_setup_entry(
 class DysonCleaningMapEntity(Camera):
     """Dyson vacuum cleaning map entity."""
 
+    _attr_has_entity_name = True
+
     def __init__(self, device: DysonCloud360Eye, device_info: DysonDeviceInfo):
         super().__init__()
         self._device = device
@@ -50,7 +52,7 @@ class DysonCleaningMapEntity(Camera):
     @property
     def name(self) -> str:
         """Return entity name."""
-        return f"{self._device_info.name} Cleaning Map"
+        return "Cleaning Map"
 
     @property
     def unique_id(self) -> str:

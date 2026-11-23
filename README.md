@@ -1,12 +1,12 @@
 # Home Assistant Integration for Wi-Fi Connected Dyson Devices
 
-This is a Home Assistant custom integration for Wi-Fi connected Dyson devices, and is being actively developed. It replaces the Dyson Local and Dyson Cloud integrations by shenxn, which are no longer maintained.
+This is a Home Assistant custom integration for Wi-Fi connected Dyson devices. It is a fork of [libdyson-wg/ha-dyson](https://github.com/libdyson-wg/ha-dyson), which has had no activity since August 2025, and adds support for newer models such as the HushJet Purifier Compact (HJ10). Issues and pull requests belong here, not upstream.
 
-[![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/libdyson-wg/ha-dyson)](https://github.com/libdyson-wg/ha-dyson/releases/)
-[![Latest Release](https://badgen.net/github/release/libdyson-wg/ha-dyson)](https://github.com/libdyson-wg/ha-dyson/releases/)
-[![validate](https://badgen.net/github/checks/libdyson-wg/ha-dyson/main/validate)](https://github.com/libdyson-wg/ha-dyson/actions/workflows/hassfest.yaml)
-[![HACS Action](https://badgen.net/github/checks/libdyson-wg/ha-dyson/main/HACS%20Action)](https://github.com/libdyson-wg/ha-dyson/actions/workflows/hacs.yaml)
-[![Latest Commit](https://badgen.net/github/last-commit/libdyson-wg/ha-dyson/main)](https://github.com/libdyson-wg/ha-dyson/commit/HEAD)
+[![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/ikaruswill/ha-dyson)](https://github.com/ikaruswill/ha-dyson/releases/)
+[![Latest Release](https://badgen.net/github/release/ikaruswill/ha-dyson)](https://github.com/ikaruswill/ha-dyson/releases/)
+[![validate](https://badgen.net/github/checks/ikaruswill/ha-dyson/main/validate)](https://github.com/ikaruswill/ha-dyson/actions/workflows/hassfest.yaml)
+[![HACS Action](https://badgen.net/github/checks/ikaruswill/ha-dyson/main/HACS%20Action)](https://github.com/ikaruswill/ha-dyson/actions/workflows/hacs.yaml)
+[![Latest Commit](https://badgen.net/github/last-commit/ikaruswill/ha-dyson/main)](https://github.com/ikaruswill/ha-dyson/commit/HEAD)
 
 ## Troubleshooting
 
@@ -23,7 +23,9 @@ Dyson fans run an MQTT Broker which this integration connects to as a client. Th
 
 ## Installation
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=libdyson-wg&repository=ha-dyson&category=integration)
+Add `https://github.com/ikaruswill/ha-dyson` to the Home Assistant Marketplace (formerly HACS) as a custom repository of type Integration, or use this link:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ikaruswill&repository=ha-dyson&category=integration)
 
 You can also install manually by copying the `custom_components` from this repository into your Home Assistant installation.
 

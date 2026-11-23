@@ -459,6 +459,43 @@ class DysonLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(self, info: Optional[dict] = None):
+        """Change how Home Assistant reaches an already set up device."""
+        entry = self._get_reconfigure_entry()
+        if CONF_REGION in entry.data:
+            return self.async_abort(reason="reconfigure_account")
+
+        errors = {}
+        if info is not None:
+            # A blank host means find the device by discovery.
+            host = info.get(CONF_HOST, "").strip() or None
+            try:
+                await self._async_try_connect(
+                    entry.data[CONF_SERIAL],
+                    entry.data[CONF_CREDENTIAL],
+                    entry.data[CONF_DEVICE_TYPE],
+                    host,
+                )
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except CannotFind:
+                errors["base"] = "cannot_find"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={CONF_HOST: host}
+                )
+
+        host = (info or entry.data).get(CONF_HOST) or ""
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {vol.Optional(CONF_HOST, description={"suggested_value": host}): str}
+            ),
+            errors=errors,
+        )
+
     async def async_step_discovery(self, info: DysonDeviceInfo):
         """Handle step initialized by MyDyson discovery."""
         _LOGGER.debug("Starting discovery step for device: %s (ProductType: %s)", 
@@ -555,6 +592,9 @@ class DysonLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             device.connect(host)
             _LOGGER.debug("Successfully connected to device via MQTT")
+            # Only a check: setup makes its own connection, and the device
+            # accepts few, so don't hold this one open.
+            await self.hass.async_add_executor_job(device.disconnect)
         except DysonInvalidCredential:
             _LOGGER.error("Invalid credentials for device serial=%s", serial)
             raise InvalidAuth

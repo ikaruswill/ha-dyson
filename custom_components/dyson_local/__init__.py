@@ -22,6 +22,7 @@ from .const import (
     DATA_COORDINATORS,
     DATA_DEVICES,
     DATA_DISCOVERY,
+    DATA_DISCOVERY_ENTRIES,
     DOMAIN,
 )
 from .devices import DEVICE_TYPE_NAMES, get_device
@@ -256,6 +257,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if "discovery_count" not in hass.data[DOMAIN]:
             hass.data[DOMAIN]["discovery_count"] = 0
         hass.data[DOMAIN]["discovery_count"] += 1
+        hass.data[DOMAIN].setdefault(DATA_DISCOVERY_ENTRIES, set()).add(entry.entry_id)
         _LOGGER.debug("Discovery count is now: %d", hass.data[DOMAIN]["discovery_count"])
 
         # Register device with discovery service with enhanced handling
@@ -300,9 +302,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if "discovery_count" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["discovery_count"] = 0
     
+    # Whether setup registered this entry with discovery, whatever its data says
+    # now: a reconfigure changes the host before the entry is unloaded.
+    uses_discovery = entry.entry_id in hass.data[DOMAIN].get(DATA_DISCOVERY_ENTRIES, set())
+
     # Check if the entry exists in our data
     if entry.entry_id not in hass.data[DOMAIN][DATA_DEVICES]:
         _LOGGER.debug("Entry %s not found in devices data during unload - this is normal during reload operations", entry.entry_id)
+        if uses_discovery:
+            # Still waiting to be discovered; stop waiting.
+            await _async_release_discovery(hass, entry)
         # For missing entries, just return True since there's nothing to unload
         # Don't try to unload platforms as they may not have been properly loaded
         return True
@@ -346,55 +355,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Handle discovery cleanup BEFORE removing device from DATA_DEVICES
     # This ensures the preservation logic can properly check for other devices
-    _LOGGER.debug("Checking if entry uses discovery - CONF_HOST: %s", entry.data.get(CONF_HOST))
-    if entry.data.get(CONF_HOST) is None:  # Only if using discovery
-        _LOGGER.debug("Entry uses discovery, handling discovery cleanup")
-        hass.data[DOMAIN]["discovery_count"] = max(0, hass.data[DOMAIN]["discovery_count"] - 1)
-        _LOGGER.debug("Discovery count after decrement: %d", hass.data[DOMAIN]["discovery_count"])
-        
-        # Always preserve discovered devices during reload, even if discovery service continues running
-        discovery = hass.data[DOMAIN][DATA_DISCOVERY]
-        _LOGGER.debug("Discovery service exists: %s", discovery is not None)
-        if discovery:
-            try:
-                # Save discovered devices before any cleanup
-                # This prevents losing device IP addresses during reload
-                saved_discovered = {}
-                with discovery._lock:
-                    saved_discovered = discovery._discovered.copy()
-                    _LOGGER.debug("Discovery service _discovered contents: %s", dict(discovery._discovered))
-                    _LOGGER.debug("Discovery service _registered contents: %s", dict(discovery._registered))
-                
-                _LOGGER.debug("Saved discovered devices during unload: %s", list(saved_discovered.keys()))
-                
-                # Always preserve discovered devices for potential reload
-                # This ensures that devices can reconnect immediately after reload
-                if saved_discovered:
-                    _LOGGER.debug("Preserving discovered devices for potential reload: %s", list(saved_discovered.keys()))
-                    # Store the discovered devices in hass.data for potential reuse
-                    hass.data[DOMAIN]["preserved_discovered"] = saved_discovered
-                else:
-                    _LOGGER.debug("No discovered devices to preserve")
-                
-            except Exception as e:
-                _LOGGER.warning("Error preserving discovery data: %s", e)
-        
-        # Only stop discovery service if no other devices are using it
-        if hass.data[DOMAIN]["discovery_count"] <= 0:
-            _LOGGER.debug("Stopping dyson discovery - no more devices using it")
-            if discovery:
-                try:
-                    await hass.async_add_executor_job(discovery.stop_discovery)
-                    _LOGGER.debug("Successfully stopped discovery service")
-                except Exception as e:
-                    _LOGGER.warning("Error stopping discovery: %s", e)
-                hass.data[DOMAIN][DATA_DISCOVERY] = None
-            hass.data[DOMAIN]["discovery_count"] = 0
-        else:
-            _LOGGER.debug("Discovery service continues running - %d devices still using it", hass.data[DOMAIN]["discovery_count"])
+    if uses_discovery:
+        await _async_release_discovery(hass, entry)
     else:
         _LOGGER.debug("Entry uses static host, skipping discovery cleanup")
-    
+
     # Clean up coordinator
     coordinator = hass.data[DOMAIN][DATA_COORDINATORS].pop(entry.entry_id, None)
     if coordinator:
@@ -426,6 +391,60 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     _LOGGER.debug("Completed unload for entry %s (device: %s)", entry.entry_id, device.serial if 'device' in locals() else 'unknown')
     return True  # Always return True since we completed cleanup
+
+
+async def _async_release_discovery(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Release an entry's use of the shared discovery service."""
+    _LOGGER.debug("Entry uses discovery, handling discovery cleanup")
+    hass.data[DOMAIN][DATA_DISCOVERY_ENTRIES].discard(entry.entry_id)
+    discovery = hass.data[DOMAIN][DATA_DISCOVERY]
+    if discovery:
+        # Drop a pending registration so a later announcement can't set up
+        # this entry's old device behind a reconfigured or removed entry.
+        with discovery._lock:
+            discovery._registered.pop(entry.data[CONF_SERIAL], None)
+    hass.data[DOMAIN]["discovery_count"] = max(0, hass.data[DOMAIN]["discovery_count"] - 1)
+    _LOGGER.debug("Discovery count after decrement: %d", hass.data[DOMAIN]["discovery_count"])
+    
+    # Always preserve discovered devices during reload, even if discovery service continues running
+    _LOGGER.debug("Discovery service exists: %s", discovery is not None)
+    if discovery:
+        try:
+            # Save discovered devices before any cleanup
+            # This prevents losing device IP addresses during reload
+            saved_discovered = {}
+            with discovery._lock:
+                saved_discovered = discovery._discovered.copy()
+                _LOGGER.debug("Discovery service _discovered contents: %s", dict(discovery._discovered))
+                _LOGGER.debug("Discovery service _registered contents: %s", dict(discovery._registered))
+            
+            _LOGGER.debug("Saved discovered devices during unload: %s", list(saved_discovered.keys()))
+            
+            # Always preserve discovered devices for potential reload
+            # This ensures that devices can reconnect immediately after reload
+            if saved_discovered:
+                _LOGGER.debug("Preserving discovered devices for potential reload: %s", list(saved_discovered.keys()))
+                # Store the discovered devices in hass.data for potential reuse
+                hass.data[DOMAIN]["preserved_discovered"] = saved_discovered
+            else:
+                _LOGGER.debug("No discovered devices to preserve")
+            
+        except Exception as e:
+            _LOGGER.warning("Error preserving discovery data: %s", e)
+    
+    # Only stop discovery service if no other devices are using it
+    if hass.data[DOMAIN]["discovery_count"] <= 0:
+        _LOGGER.debug("Stopping dyson discovery - no more devices using it")
+        if discovery:
+            try:
+                await hass.async_add_executor_job(discovery.stop_discovery)
+                _LOGGER.debug("Successfully stopped discovery service")
+            except Exception as e:
+                _LOGGER.warning("Error stopping discovery: %s", e)
+            hass.data[DOMAIN][DATA_DISCOVERY] = None
+        hass.data[DOMAIN]["discovery_count"] = 0
+    else:
+        _LOGGER.debug("Discovery service continues running - %d devices still using it", hass.data[DOMAIN]["discovery_count"])
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

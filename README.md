@@ -50,7 +50,7 @@ This integration uses MQTT-based protocol to communicate with Dyson devices. Onl
 - Dyson Purifier Humidity+Cool Formaldehyde
 - Dyson Purifier Big+Quiet
 - Dyson Purifier Big+Quiet Formaldehyde
-- Dyson HushJet Purifier Compact (HJ10)
+- Dyson HushJet Purifier Compact (HJ10): fan with speed, Auto and night mode, sleep timer, continuous monitoring, PM2.5 and PM10, carbon and HEPA filter life, and whether the fan is running. It has no oscillation.
 
 ### MyDyson Accounts
 

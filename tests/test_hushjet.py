@@ -10,7 +10,8 @@ from libdyson import DysonPureCool
 from libdyson.cloud import DysonDeviceInfo
 import pytest
 
-from custom_components.dyson_local import sensor
+from custom_components.dyson_local import _async_get_platforms, sensor
+from custom_components.dyson_local.binary_sensor import DysonFanRunningSensor
 from custom_components.dyson_local.const import DATA_COORDINATORS, DATA_DEVICES, DOMAIN
 from custom_components.dyson_local.devices import (
     DEVICE_TYPE_HUSHJET,
@@ -20,19 +21,25 @@ from custom_components.dyson_local.devices import (
     get_device_type,
 )
 from custom_components.dyson_local.fan import DysonHushJetEntity
+from custom_components.dyson_local.number import DysonSleepTimerNumber
 
 SERIAL = "M4P-SG-ABC1234A"
 
-# Product state as a HushJet reports it: Pure Cool fields, no oscillation.
+# Product state as an HJ10 reports it (captured 2026-11-23): Pure Cool
+# fields, no oscillation.
 STATUS = {
-    "fpwr": "ON",
-    "fnst": "FAN",
-    "fnsp": "0004",
     "auto": "OFF",
+    "cflr": "0088",
+    "cflt": "CARF",
+    "fnsp": "0004",
+    "fnst": "FAN",
+    "fpwr": "ON",
+    "hflr": "0093",
+    "hflt": "HSCO",
+    "nmdv": "0000",
     "nmod": "OFF",
     "rhtm": "ON",
-    "hflr": "0093",
-    "cflr": "0088",
+    "sltm": "OFF",
 }
 
 
@@ -156,3 +163,38 @@ def test_sensors_are_particulates_and_filters(hushjet):
         "DysonPM10Sensor",
         "DysonPM25Sensor",
     ]
+
+
+def test_sleep_timer_reads_the_product_state(hushjet):
+    assert hushjet.sleep_timer == 0
+    hushjet._handle_message(
+        {
+            "msg": "STATE-CHANGE",
+            "product-state": {
+                **{key: [value, value] for key, value in STATUS.items()},
+                "sltm": ["OFF", "0015"],
+            },
+        }
+    )
+    assert hushjet.sleep_timer == 15
+
+
+def test_sleep_timer_number_sets_and_clears(hushjet):
+    entity = DysonSleepTimerNumber(hushjet, "Bedroom")
+    entity.set_native_value(30.0)
+    entity.set_native_value(0.0)
+    assert published(hushjet) == [{"sltm": "0030"}, {"sltm": "OFF"}]
+    assert entity.unique_id == f"{SERIAL}-sleep_timer"
+
+
+def test_fan_running_follows_fnst(hushjet):
+    entity = DysonFanRunningSensor(hushjet, "Bedroom")
+    assert entity.is_on
+    hushjet._status["fnst"] = "OFF"
+    assert not entity.is_on
+
+
+def test_hushjet_sets_up_timer_and_fan_running_platforms(hushjet):
+    platforms = _async_get_platforms(hushjet)
+    assert {"binary_sensor", "number"} <= set(platforms)
+    assert "climate" not in platforms

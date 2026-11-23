@@ -20,6 +20,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from . import DysonEntity
 from .const import DATA_DEVICES, DOMAIN
+from .devices import DysonHushJet
 
 ICON_BIN_FULL = "mdi:delete-variant"
 
@@ -49,6 +50,8 @@ async def async_setup_entry(
         )
     if isinstance(device, DysonPureHotCoolLink):
         entities.extend([DysonPureHotCoolLinkTiltSensor(device, name)])
+    if isinstance(device, DysonHushJet):
+        entities.append(DysonFanRunningSensor(device, name))
     async_add_entities(entities)
 
 
@@ -150,3 +153,25 @@ class DysonPureHotCoolLinkTiltSensor(DysonEntity, BinarySensorEntity):
     def sub_unique_id(self):
         """Return the sensor's unique id."""
         return "tilt"
+
+
+class DysonFanRunningSensor(DysonEntity, BinarySensorEntity):
+    """Whether the fan is spinning, as the device reports it (fnst)."""
+
+    _attr_device_class = BinarySensorDeviceClass.RUNNING
+    _attr_icon = "mdi:fan"
+
+    @property
+    def is_on(self) -> bool:
+        """Return if the fan is spinning."""
+        return self._device.fan_state
+
+    @property
+    def sub_name(self) -> str:
+        """Return the name of the sensor."""
+        return "Fan Running"
+
+    @property
+    def sub_unique_id(self) -> str:
+        """Return the sensor's unique id."""
+        return "fan_running"

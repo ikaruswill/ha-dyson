@@ -25,7 +25,7 @@ from .const import (
     DATA_DISCOVERY_ENTRIES,
     DOMAIN,
 )
-from .devices import DEVICE_TYPE_NAMES, get_device
+from .devices import DEVICE_TYPE_NAMES, DysonHushJet, get_device
 from libdyson import (
     Dyson360Eye,
     Dyson360Heurist,
@@ -488,6 +488,8 @@ def _async_get_platforms(device: DysonDevice) -> List[str]:
         platforms.extend(["binary_sensor", "climate"])
     if isinstance(device, DysonPurifierHumidifyCool):
         platforms.append("humidifier")
+    if isinstance(device, DysonHushJet):
+        platforms.extend(["binary_sensor", "number"])
     if hasattr(device, "filter_life") or hasattr(device, "carbon_filter_life") or hasattr(device, "hepa_filter_life"):
         platforms.append("button")
     return platforms

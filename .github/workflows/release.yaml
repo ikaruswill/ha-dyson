@@ -1,6 +1,10 @@
 name: Release
 
 on:
+  # Actions > Release > Run workflow: tags main with the manifest version.
+  workflow_dispatch:
+  # Pushing a vX.Y.Z tag from a clone, or publishing a release from the
+  # Releases page, which pushes its new tag.
   push:
     tags:
       - "v*"
@@ -13,14 +17,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check the tag matches the manifest version
+      - name: Work out the tag
+        id: tag
         run: |
           manifest_version=$(jq -r .version custom_components/dyson_local/manifest.json)
-          if [ "v${manifest_version}" != "${GITHUB_REF_NAME}" ]; then
+          tag="v${manifest_version}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "${tag}" ]; then
             echo "::error::Tag ${GITHUB_REF_NAME} does not match manifest version ${manifest_version}"
             exit 1
           fi
+          if [ "${GITHUB_REF_TYPE}" = "branch" ] && [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::Release from main, not ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            echo "Release ${TAG} already exists"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            gh release create "${TAG}" --verify-tag --generate-notes
+          elif git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null; then
+            echo "::error::Tag ${TAG} already exists without a release; bump the manifest version"
+            exit 1
+          else
+            gh release create "${TAG}" --target "${GITHUB_SHA}" --generate-notes
+          fi

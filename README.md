@@ -118,14 +118,11 @@ This is proven to work without any side effects. If you used the default IDs for
 ## Releasing
 
 1. Bump `version` in `custom_components/dyson_local/manifest.json` in a pull request and merge it.
-2. Tag the merge commit with the same version and push the tag:
+2. On GitHub, open **Actions → Release → Run workflow** on `main` (this works from a phone browser too).
 
-   ```bash
-   git tag v1.8.0
-   git push origin v1.8.0
-   ```
+The workflow tags `main` as `v<version>` from the manifest and publishes a GitHub release with generated notes. The Marketplace offers releases as versions to install.
 
-The Release workflow checks the tag matches the manifest and publishes a GitHub release with generated notes. The Marketplace offers releases as versions to install.
+Pushing a `v<version>` tag from a clone, or publishing a release with a new tag from the Releases page, also works. For a pushed tag, the workflow fails if the tag doesn't match the manifest version. A release published from the Releases page is already live by then, so the failure is only a warning to fix it.
 
 ## Testing
 

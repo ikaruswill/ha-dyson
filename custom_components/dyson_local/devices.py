@@ -21,8 +21,8 @@ class DysonHushJet(DysonPureCoolBase):
     """Dyson HushJet Purifier Compact (HJ10).
 
     Speaks the Pure Cool protocol for power, speed, auto, night mode,
-    continuous monitoring, filter life and particulate matter, but has no
-    oscillation or airflow direction. The state never carries the
+    continuous monitoring, sleep timer, filter life and particulate matter,
+    but has no oscillation or airflow direction. The state never carries the
     oscillation fields, so this deliberately does not subclass DysonPureCool,
     whose angle properties would raise on the missing values.
     """
@@ -39,6 +39,18 @@ class DysonHushJet(DysonPureCoolBase):
     def disable_oscillation(self) -> None:
         """Reject oscillation; the HushJet cannot oscillate."""
         raise NotImplementedError("HushJet has no oscillation")
+
+    @property
+    def sleep_timer(self) -> int:
+        """Return the sleep timer in minutes, or 0 when it is off.
+
+        Read from the product state, which the HushJet pushes as soon as the
+        timer changes, rather than from the polled environmental data.
+        """
+        value = self._get_field_value(self._status, "sltm")
+        if value is None or value == "OFF":
+            return 0
+        return int(value)
 
     def _set_speed(self, speed: int) -> None:
         # Leave auto mode in the same message. A separate auto=OFF command

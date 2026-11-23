@@ -198,3 +198,12 @@ def test_hushjet_sets_up_timer_and_fan_running_platforms(hushjet):
     platforms = _async_get_platforms(hushjet)
     assert {"binary_sensor", "number"} <= set(platforms)
     assert "climate" not in platforms
+
+
+def test_entities_are_named_after_the_device(hushjet):
+    fan = DysonHushJetEntity(hushjet, "Living room")
+    timer = DysonSleepTimerNumber(hushjet, "Living room")
+    assert fan.has_entity_name and timer.has_entity_name
+    assert fan.name is None
+    assert timer.name == "Sleep Timer"
+    assert fan.device_info["name"] == "Living room"

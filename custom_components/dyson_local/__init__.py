@@ -499,6 +499,8 @@ class DysonEntity(Entity):
     """Dyson entity base class."""
 
     _MESSAGE_TYPE = MessageType.STATE
+    # Names come from the device, so entities follow a renamed device.
+    _attr_has_entity_name = True
 
     def __init__(self, device: DysonDevice, name: str):
         """Initialize the entity."""
@@ -526,11 +528,9 @@ class DysonEntity(Entity):
         return False
 
     @property
-    def name(self) -> str:
-        """Return the name of the entity."""
-        if self.sub_name is None:
-            return self._name
-        return f"{self._name} {self.sub_name}"
+    def name(self) -> Optional[str]:
+        """Return the entity's own name; None makes it the device's main entity."""
+        return self.sub_name
 
     @property
     def sub_name(self) -> Optional[str]:

@@ -115,6 +115,18 @@ This is proven to work without any side effects. If you used the default IDs for
 1. Add the new [dyson-ha](https://github.com/libdyson-wg/ha-dyson)
    - If you installed this as a Custom Repository, update the ha-dyson repository using the HACS updater
 
+## Releasing
+
+1. Bump `version` in `custom_components/dyson_local/manifest.json` in a pull request and merge it.
+2. Tag the merge commit with the same version and push the tag:
+
+   ```bash
+   git tag v1.8.0
+   git push origin v1.8.0
+   ```
+
+The Release workflow checks the tag matches the manifest and publishes a GitHub release with generated notes. The Marketplace offers releases as versions to install.
+
 ## Testing
 
 This integration includes a test suite to ensure code quality and prevent

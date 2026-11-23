@@ -55,6 +55,12 @@
         "data": {
           "otp": "MyDyson verification code (Check your mobile phone)"
         }
+      },
+      "reconfigure": {
+        "description": "Enter the device's IP address to connect to it directly, or leave it blank to find it by discovery.",
+        "data": {
+          "host": "Device IP Address (Optional)"
+        }
       }
     },
     "error": {
@@ -69,7 +75,9 @@
       "unknown_device_type": "Unknown device type. This device model may not be supported yet.  Please open an issue on GitHub to report this."
     },
     "abort": {
-      "already_configured": "Device already configured"
+      "already_configured": "Device already configured",
+      "reconfigure_successful": "Device connection updated",
+      "reconfigure_account": "A MyDyson account has nothing to reconfigure. Reconfigure each device instead."
     }
   }
 }

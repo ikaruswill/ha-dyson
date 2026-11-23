@@ -48,6 +48,7 @@ This integration uses MQTT-based protocol to communicate with Dyson devices. Onl
 - Dyson Purifier Humidity+Cool Formaldehyde
 - Dyson Purifier Big+Quiet
 - Dyson Purifier Big+Quiet Formaldehyde
+- Dyson HushJet Purifier Compact (HJ10)
 
 ### MyDyson Accounts
 

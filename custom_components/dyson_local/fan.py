@@ -26,6 +26,7 @@ from homeassistant.util.percentage import (
 
 from . import DOMAIN, DysonEntity
 from .const import DATA_DEVICES
+from .devices import DysonHushJet
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +70,8 @@ async def async_setup_entry(
     name = config_entry.data[CONF_NAME]
     if isinstance(device, DysonPureCoolLink):
         entity = DysonPureCoolLinkEntity(device, name)
+    elif isinstance(device, DysonHushJet):
+        entity = DysonHushJetEntity(device, name)
     elif isinstance(device, DysonPureCool):
         entity = DysonPureCoolEntity(device, name)
     else:  # DysonPurifierHumidifyCool
@@ -250,6 +253,27 @@ class DysonPureCoolEntity(DysonFanEntity):
             self.name,
         )
         self._device.enable_oscillation(angle_low, angle_high)
+
+
+class DysonHushJetEntity(DysonFanEntity):
+    """Dyson HushJet Purifier Compact entity."""
+
+    _attr_icon = "mdi:air-purifier"
+
+    @property
+    def supported_features(self) -> int:
+        """Flag supported features."""
+        return COMMON_FEATURES & ~FanEntityFeature.OSCILLATE
+
+    def set_percentage(self, percentage: int) -> None:
+        """Set the speed percentage of the fan."""
+        if percentage == 0:
+            self._device.turn_off()
+            return
+
+        # The device leaves auto mode in the same command as the speed change.
+        dyson_speed = math.ceil(percentage_to_ranged_value(SPEED_RANGE, percentage))
+        self._device.set_speed(dyson_speed)
 
 
 class DysonPurifierHumidifyCoolEntity(DysonFanEntity):

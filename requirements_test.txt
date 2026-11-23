@@ -1,0 +1,3 @@
+homeassistant==2026.11.2
+libdyson-neon==1.6.0
+pytest==9.0.2

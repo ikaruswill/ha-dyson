@@ -122,14 +122,13 @@ regressions. Here's how to run the tests:
 
 ### Prerequisites
 
-1. Install test dependencies:
+Install the test dependencies on Python 3.14:
 
-   ```bash
-   pip install pytest pytest-homeassistant-custom-component
-   ```
+```bash
+pip install -r requirements_test.txt
+```
 
-2. Ensure you have the project structure set up correctly with a `tests/`
-   directory at the root level.
+The same tests run on every pull request in the Tests workflow.
 
 ### Running Tests
 

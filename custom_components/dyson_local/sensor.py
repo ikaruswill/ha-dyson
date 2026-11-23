@@ -36,6 +36,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from . import DysonEntity
 from .const import DATA_COORDINATORS, DATA_DEVICES, DOMAIN
+from .devices import DysonHushJet
 from .utils import environmental_property
 
 
@@ -49,11 +50,15 @@ async def async_setup_entry(
         entities = [DysonBatterySensor(device, name)]
     else:
         coordinator = hass.data[DOMAIN][DATA_COORDINATORS][config_entry.entry_id]
-        entities = [
-            DysonHumiditySensor(coordinator, device, name),
-            DysonTemperatureSensor(coordinator, device, name),
-            DysonVOCSensor(coordinator, device, name),
-        ]
+        if isinstance(device, DysonHushJet):
+            # Particulate matter is the only environmental reading it has.
+            entities = []
+        else:
+            entities = [
+                DysonHumiditySensor(coordinator, device, name),
+                DysonTemperatureSensor(coordinator, device, name),
+                DysonVOCSensor(coordinator, device, name),
+            ]
 
         if isinstance(device, DysonPureCoolLink):
             entities.extend(
@@ -72,9 +77,10 @@ async def async_setup_entry(
                 [
                     DysonPM25Sensor(coordinator, device, name),
                     DysonPM10Sensor(coordinator, device, name),
-                    DysonNO2Sensor(coordinator, device, name),
                 ]
             )
+            if not isinstance(device, DysonHushJet):
+                entities.append(DysonNO2Sensor(coordinator, device, name))
             if device.carbon_filter_life is None:
                 entities.append(DysonCombinedFilterLifeSensor(device, name))
             else:

@@ -24,6 +24,7 @@ from .const import (
     DATA_DISCOVERY,
     DOMAIN,
 )
+from .devices import DEVICE_TYPE_NAMES, get_device
 from libdyson import (
     Dyson360Eye,
     Dyson360Heurist,
@@ -32,7 +33,6 @@ from libdyson import (
     DysonPureHotCoolLink,
     DysonPurifierHumidifyCool,
     MessageType,
-    get_device,
 )
 from libdyson.cloud import DysonAccount, DysonAccountCN
 from libdyson.discovery import DysonDiscovery
@@ -535,7 +535,9 @@ class DysonEntity(Entity):
             "identifiers": {(DOMAIN, self._device.serial)},
             "name": self._name,
             "manufacturer": "Dyson",
-            "model": self._device.device_type,
+            "model": DEVICE_TYPE_NAMES.get(
+                self._device.device_type, self._device.device_type
+            ),
         }
 
 async def _async_register_device_with_discovery(

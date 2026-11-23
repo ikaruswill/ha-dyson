@@ -4,7 +4,7 @@ import logging
 import threading
 from typing import Optional
 
-from libdyson import DEVICE_TYPE_NAMES, get_device, get_mqtt_info_from_wifi_info
+from libdyson import get_mqtt_info_from_wifi_info
 from libdyson.cloud import DysonDeviceInfo
 from libdyson.discovery import DysonDiscovery
 from libdyson.exceptions import (
@@ -49,6 +49,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_EMAIL, CONF_PASSWORD,
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import CONF_CREDENTIAL, CONF_DEVICE_TYPE, CONF_SERIAL, DOMAIN
+from .devices import DEVICE_TYPE_NAMES, get_device, get_device_type
 
 from .cloud.const import CONF_REGION, CONF_AUTH
 
@@ -413,7 +414,7 @@ class DysonLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if info is not None:
             # Use the device info's built-in mapping method which handles variants properly
-            device_type = self._device_info.get_device_type()
+            device_type = get_device_type(self._device_info)
             
             _LOGGER.debug("Cloud ProductType: %s, variant: %s, Mapped to: %s", 
                          self._device_info.product_type, getattr(self._device_info, 'variant', None), device_type)
